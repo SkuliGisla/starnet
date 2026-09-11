@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { replayTurn, startReplayProvider, validateResume, SAMPLE, DRAFT, MODEL } from '../dev/value-loop-replay.mjs';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, statSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-const resumeRoot = mkdtempSync(join(tmpdir(), 'starnet-resume-validation-'));
+// validateResume refuses a folder whose realpath differs from its path. On macOS os.tmpdir() is
+// /var/folders/... against a real /private/var/folders/..., so a bare tmpdir root reads as a symlink.
+const resumeRoot = mkdtempSync(join(realpathSync(tmpdir()), 'starnet-resume-validation-'));
 mkdirSync(join(resumeRoot, 'workspace')); mkdirSync(join(resumeRoot, 'client-notes'));
 const savedPath = join(resumeRoot, 'workspace', 'agent.save.json'), rosterPath = join(resumeRoot, 'workspace', 'agent.roster.json'), notesPath = join(resumeRoot, 'client-notes', 'weekly-notes.md');
 writeFileSync(savedPath, JSON.stringify({ doc: { retained: 'exact prior state' } }));

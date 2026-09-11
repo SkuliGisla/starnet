@@ -10,7 +10,9 @@ const { makeDocumentDiscovery, POLICY } = require('../sidecar/discovery-document
 const FailOpen = require('../sidecar/failopen.js');
 
 (async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'starnet-doc-discovery-'));
+  // realpathSync: on macOS os.tmpdir() is /var/folders/... while the real path is
+  // /private/var/folders/..., and discovery compares realpaths — an uncanonical root never matches.
+  const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'starnet-doc-discovery-'));
   let granted = true;
   const adapter = makeDocumentDiscovery({ fsp, path, hash: s => crypto.createHash('sha256').update(s).digest('hex'), isBlessed: r => granted && r === root });
   const now = Date.now(), source = { id: 'client-update', root, enabled: true };
@@ -53,7 +55,7 @@ const FailOpen = require('../sidecar/failopen.js');
     assert.equal((await adapter.scan({ ...source, enabled: false }, now)).reason, 'source-paused');
     await assert.rejects(adapter.canonicalRoot('../outside'), /absolute/);
     // Junctions need no Windows developer-mode privileges; they must never be traversed.
-    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'starnet-doc-outside-'));
+    const outside = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'starnet-doc-outside-'));
     try {
       fs.writeFileSync(path.join(outside, 'escape.md'), 'client outside the selected source');
       fs.symlinkSync(outside, path.join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');

@@ -7,7 +7,9 @@ const path = require('path');
 const { makeProjectDiscovery } = require('../sidecar/project-discovery.js');
 
 (async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'starnet-project-discovery-'));
+  // realpathSync: on macOS os.tmpdir() is /var/folders/... while the real path is
+  // /private/var/folders/..., and discovery compares realpaths — an uncanonical root never matches.
+  const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'starnet-project-discovery-'));
   try {
     const shelf = path.join(root, 'Projects');
     const nodeProject = path.join(shelf, 'alpha');
