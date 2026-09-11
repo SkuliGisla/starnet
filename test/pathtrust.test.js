@@ -10,7 +10,10 @@ const path = require('path');
 const os = require('os');
 const { makePathTrust } = require('../sidecar/pathtrust.js');
 
-const ROOT = path.join(os.tmpdir(), 'starnet-pathtrust-' + process.pid);
+// realpathSync the tmpdir: this suite proves containment on REALPATHS (see the canonical-root case
+// below), and on macOS os.tmpdir() is /var/folders/... while the real path is /private/var/folders/...
+// An uncanonical ROOT makes every blessed-root comparison miss. Windows and Linux are already canonical.
+const ROOT = path.join(fs.realpathSync(os.tmpdir()), 'starnet-pathtrust-' + process.pid);
 
 async function rejects(promise, msg) { try { await promise; A.ok(false, msg + ' — did NOT reject'); } catch (e) { A.ok(true, msg); } }
 
