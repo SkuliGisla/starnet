@@ -607,6 +607,10 @@ if (INVOKED_DIRECTLY) {
       console.error('[qa:reconcile] wrote qa/digests/reconcile-' + result.date + '.{md,json}');
     } catch (e) { console.error('[qa:reconcile] could not write the report: ' + (e && e.message)); }
   }
+  /* stdout is a PIPE under spawnSync/CI, and a pipe holds 64 KB. A write past that returns before the
+     kernel has taken it all, so a process.exit() below this line truncated the payload mid-object while
+     still exiting 0 — silent, and only once the register grew past ~130 records. Set exitCode and let
+     node drain stdout on its own. */
   if (args.json) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   else process.stdout.write(md + '\n');
 
@@ -615,9 +619,9 @@ if (INVOKED_DIRECTLY) {
     if (!ci.ok) {
       console.error('[qa:reconcile] CI RED — ' + ci.stale.length + ' likely-fixed record(s) still open for more than ' + ci.staleDays + ' day(s):');
       for (const r of ci.stale) console.error('  - ' + r.fingerprint + ' (' + r.ageDays + 'd, ' + r.status + ') ' + r.evidence.join('; '));
-      process.exit(3);
+      process.exitCode = 3;
+    } else {
+      console.error('[qa:reconcile] CI OK — no likely-fixed record has sat open more than ' + ci.staleDays + ' day(s)');
     }
-    console.error('[qa:reconcile] CI OK — no likely-fixed record has sat open more than ' + ci.staleDays + ' day(s)');
   }
-  process.exit(0);
 }
